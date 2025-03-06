@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #1e1e2f, #2b2b45);
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .row {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .sidebar, .container {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+            transition: 0.3s;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            width: 200px;
+            border: 2px solid #3498db;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar button, .container button {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s, transform 0.3s;
+        }
+
+        .container {
+            padding: 40px;
+            width: 400px;
+            border: 2px solid #3498db;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .details-container {
+            display: none;
+            padding: 40px;
+            width: 400px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
+            border: 2px solid #3498db;
+            backdrop-filter: blur(15px);
+        }
+
+        button {
+            padding: 14px 30px;
+            margin: 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .start, .break {
+            background: #4caf50;
+            color: white;
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.5);
+        }
+
+        .stop {
+            background: #f44336;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: scale(1.08);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .dark-mode {
+            background: linear-gradient(135deg, #2b2b45, #1e1e2f);
+            color: white;
+        }
+
+        .light-mode {
+            background: linear-gradient(135deg, #ffffff, #f0f0f0);
+            color: black;
+        }
+
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+            text-align: center;
+            animation: fadeIn 0.5s, fadeOut 0.5s 2.5s;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+
+        @keyframes fadeOut {
+            from {opacity: 1;}
+            to {opacity: 0;}
+        }
+
+        .rank-elite { color: gold; }
+        .rank-master { color: silver; }
+        .rank-advanced { color: bronze; }
+        .rank-dedicated { color: green; }
+        .rank-new { color: blue; }
+        .rank-unranked { color: white; }
+
+        .leaderboard-item {
+            padding: 10px;
+            border-bottom: 1px solid #3498db;
+        }
+
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="row">
+        <div class="sidebar">
+            <button onclick="showDetails('graphContainer')">📊 Graph</button>
+            <button onclick="showDetails('leaderboardContainer')">🏆 Leaderboard</button>
+            <button onclick="showDetails('rankContainer')">🎖 Rank</button>
+            <button onclick="toggleDarkMode()">🌗 Toggle Dark Mode</button>
+        </div>
+        <div class="container">
+            <h1>📚 Study Tracker</h1>
+            <input type="text" id="username" placeholder="Enter your name" style="margin-bottom: 10px; padding: 10px; border-radius: 10px; border: none;">
+            <button onclick="saveUsername()">Save Username</button>
+            <h2>Study Time: <span id="studyTime">0</span> sec</h2>
+            <h2>Break Time: <span id="breakTime">0</span> sec</h2>
+            <h2>Rank: <span id="rank" class="rank-unranked">Unranked</span></h2>
+            <h2>Level: <span id="level">1</span></h2>
+            <h2>Points: <span id="points">0</span></h2>
+            <h2>Points to Next Level: <span id="nextLevelPoints">5000</span></h2>
+            <button class="start" onclick="toggleStudy()">Start Study</button>
+            <button class="break" onclick="toggleBreak()">Break Mode</button>
+            <button class="stop" onclick="stopStudy()">Stop & Save</button>
+        </div>
+        <div class="details-container" id="graphContainer">
+            <h2>📊 Study vs Break Time</h2>
+            <canvas id="studyChart"></canvas>
+        </div>
+        <div class="details-container" id="leaderboardContainer">
+            <h2>🏆 Leaderboard</h2>
+            <ol id="leaderboard"></ol>
+        </div>
+        <div class="details-container" id="rankContainer">
+            <h2>🎖 Your Rank</h2>
+            <p id="rankMessage">Start studying to earn a rank!</p>
+        </div>
+    </div>
+
+    <div class="popup" id="popup">
+        <p id="popupMessage"></p>
+    </div>
+
+    <script>
+        let studyTime = 0, breakTime = 0;
+        let studyInterval, breakInterval;
+        let isStudying = false, isOnBreak = false;
+        let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+        let darkMode = localStorage.getItem('darkMode') === 'true';
+        let points = 0;
+        let level = 1;
+        let nextLevelPoints = 5000;
+        let studyMilestones = [600, 1200, 1800]; // 10min, 20min, 30min
+
+        const levelRequirements = [5000, 15000, 45000, 135000, 405000, 1215000, 3645000, 10935000, 32805000, 98415000];
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            document.getElementById('studyTime').innerText = formatTime(studyTime);
+            document.getElementById('breakTime').innerText = formatTime(breakTime);
+            updateRank();
+            updateLeaderboard();
+            if (darkMode) {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.add('light-mode');
+            }
+            document.getElementById('username').value = localStorage.getItem('username') || '';
+            document.getElementById('level').innerText = level;
+            document.getElementById('points').innerText = points;
+            document.getElementById('nextLevelPoints').innerText = nextLevelPoints;
+        });
+
+        function saveUsername() {
+            const usernameInput = document.getElementById('username').value.trim();
+            if (!usernameInput) {
+                showPopup('Username cannot be empty!');
+                return;
+            }
+            if (leaderboard.some(user => user.name === usernameInput)) {
+                showPopup('Username already exists!');
+                return;
+            }
+            localStorage.setItem('username', usernameInput);
+            showPopup('Username saved successfully!');
+        }
+
+        function toggleStudy() {
+            if (isStudying) {
+                clearInterval(studyInterval);
+                isStudying = false;
+                notify('Study session paused');
+            } else {
+                clearInterval(breakInterval);
+                isStudying = true;
+                isOnBreak = false;
+                studyInterval = setInterval(() => {
+                    studyTime++;
+                    points += 1000 / 60; // 100 points per minute
+                    document.getElementById("studyTime").innerText = formatTime(studyTime);
+                    document.getElementById("points").innerText = Math.floor(points);
+                    updateRank();
+                    checkMilestones();
+                }, 1000); // 1 second
+                notify('Study session started');
+            }
+        }
+
+        function toggleBreak() {
+            if (isOnBreak) {
+                clearInterval(breakInterval);
+                isOnBreak = false;
+                notify('Break ended');
+            } else {
+                clearInterval(studyInterval);
+                isOnBreak = true;
+                isStudying = false;
+                breakInterval = setInterval(() => {
+                    breakTime++;
+                    document.getElementById("breakTime").innerText = formatTime(breakTime);
+                }, 1000);
+                notify('Break started');
+            }
+        }
+
+        function stopStudy() {
+            clearInterval(studyInterval);
+            clearInterval(breakInterval);
+            isStudying = false;
+            isOnBreak = false;
+            const username = localStorage.getItem('username') || 'User';
+            let user = leaderboard.find(user => user.name === username);
+            if (user) {
+                user.study += studyTime;
+            } else {
+                leaderboard.push({ name: username, study: studyTime, rank: document.getElementById('rank').innerText });
+            }
+            leaderboard.sort((a, b) => b.study - a.study);
+            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+            updateLeaderboard();
+            updateGraph();
+            studyTime = 0;
+            breakTime = 0;
+            document.getElementById("studyTime").innerText = "0";
+            document.getElementById("breakTime").innerText = "0";
+            notify('Study session saved');
+        }
+
+        function showDetails(containerId) {
+            const containers = document.querySelectorAll('.details-container');
+            containers.forEach(container => {
+                if (container.id === containerId) {
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+            });
+            if (containerId === 'graphContainer') {
+                updateGraph();
+            } else if (containerId === 'leaderboardContainer') {
+                updateLeaderboard();
+            }
+        }
+
+        function updateGraph() {
+            const ctx = document.getElementById('studyChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Study Time', 'Break Time'],
+                    datasets: [{
+                        data: [studyTime, breakTime],
+                        backgroundColor: ['#4caf50', '#f1c40f']
+                    }]
+                }
+            });
+        }
+
+        function updateLeaderboard() {
+            const leaderboardEl = document.getElementById("leaderboard");
+            leaderboardEl.innerHTML = "";
+            leaderboard.forEach((user, index) => {
+                const rankClass = getRankClass(user.rank);
+                leaderboardEl.innerHTML += `<li class="leaderboard-item ${rankClass}">${index + 1}. ${user.name} - ${formatTime(user.study)} - ${user.rank}</li>`;
+            });
+        }
+
+        function getRankClass(rank) {
+            switch (rank) {
+                case "Elite Learner":
+                    return "rank-elite";
+                case "Master Scholar":
+                    return "rank-master";
+                case "Advanced Learner":
+                    return "rank-advanced";
+                case "Dedicated Student":
+                    return "rank-dedicated";
+                case "New Learner":
+                    return "rank-new";
+                default:
+                    return "rank-unranked";
+            }
+        }
+
+        function updateRank() {
+            let rank = "Unranked";
+            let rankClass = "rank-unranked";
+            let rankMessage = "";
+
+            if (points >= 2000000) {
+                rank = "Elite Learner";
+                rankClass = "rank-elite";
+                rankMessage = "You're an elite learner!";
+            } else if (points >= 1000000) {
+                rank = "Master Scholar";
+                rankClass = "rank-master";
+                rankMessage = "Great job! You're a Master Scholar!";
+            } else if (points >= 500000) {
+                rank = "Advanced Learner";
+                rankClass = "rank-advanced";
+                rankMessage = "You're an Advanced Learner!";
+            } else if (points >= 100000) {
+                rank = "Dedicated Student";
+                rankClass = "rank-dedicated";
+                rankMessage = "You're a Dedicated Student!";
+            } else if (points > 0) {
+                rank = "New Learner";
+                rankClass = "rank-new";
+                rankMessage = "Getting started is the first step!";
+            }
+
+            document.getElementById("rank").innerText = rank;
+            document.getElementById("rank").className = rankClass;
+            document.getElementById("rankMessage").innerText = rankMessage;
+        }
+
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            localStorage.setItem('darkMode', darkMode);
+            if (darkMode) {
+                document.body.classList.add('dark-mode');
+                document.body.classList.remove('light-mode');
+            } else {
+                document.body.classList.add('light-mode');
+                document.body.classList.remove('dark-mode');
+            }
+        }
+
+        function notify(message) {
+            const notification = document.createElement('div');
+            notification.innerText = message;
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.left = '50%';
+            notification.style.transform = 'translateX(-50%)';
+            notification.style.backgroundColor = '#333';
+            notification.style.color = '#fff';
+            notification.style.padding = '10px 20px';
+            notification.style.borderRadius = '5px';
+            notification.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.3s';
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.style.opacity = '1';
+            }, 100);
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        function showPopup(message) {
+            const popup = document.getElementById('popup');
+            const popupMessage = document.getElementById('popupMessage');
+            popupMessage.innerText = message;
+            popup.style.display = 'block';
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 3000);
+        }
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return `${h}h ${m}m ${s}s`;
+        }
+
+        function checkMilestones() {
+            if (studyMilestones.includes(studyTime)) {
+                showPopup(`🎉 You've reached ${formatTime(studyTime)} of study time!`);
+            }
+            if (points >= nextLevelPoints) {
+                level++;
+                nextLevelPoints = levelRequirements[level - 1] || nextLevelPoints * 3; // Default to next level points
+                document.getElementById('level').innerText = level;
+                document.getElementById('nextLevelPoints').innerText = nextLevelPoints;
+                showPopup(`🎉 Congratulations! You've reached Level ${level}!`);
+            }
+        }
+    </script>
+</body>
+</html>
