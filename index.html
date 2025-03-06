@@ -204,14 +204,15 @@
     </div>
 
     <script>
-        let studyTime = 0, breakTime = 0;
+        let studyTime = parseInt(localStorage.getItem('studyTime')) || 0;
+        let breakTime = parseInt(localStorage.getItem('breakTime')) || 0;
         let studyInterval, breakInterval;
         let isStudying = false, isOnBreak = false;
         let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
         let darkMode = localStorage.getItem('darkMode') === 'true';
-        let points = 0;
-        let level = 1;
-        let nextLevelPoints = 5000;
+        let points = parseFloat(localStorage.getItem('points')) || 0;
+        let level = parseInt(localStorage.getItem('level')) || 1;
+        let nextLevelPoints = parseInt(localStorage.getItem('nextLevelPoints')) || 5000;
         let studyMilestones = [600, 1200, 1800]; // 10min, 20min, 30min
 
         const levelRequirements = [5000, 15000, 45000, 135000, 405000, 1215000, 3645000, 10935000, 32805000, 98415000];
@@ -228,7 +229,7 @@
             }
             document.getElementById('username').value = localStorage.getItem('username') || '';
             document.getElementById('level').innerText = level;
-            document.getElementById('points').innerText = points;
+            document.getElementById('points').innerText = Math.floor(points);
             document.getElementById('nextLevelPoints').innerText = nextLevelPoints;
         });
 
@@ -257,7 +258,9 @@
                 isOnBreak = false;
                 studyInterval = setInterval(() => {
                     studyTime++;
-                    points += 1000 / 60; // 100 points per minute
+                    points += 1000 / 60; // 1000 points per minute
+                    localStorage.setItem('studyTime', studyTime);
+                    localStorage.setItem('points', points);
                     document.getElementById("studyTime").innerText = formatTime(studyTime);
                     document.getElementById("points").innerText = Math.floor(points);
                     updateRank();
@@ -278,6 +281,7 @@
                 isStudying = false;
                 breakInterval = setInterval(() => {
                     breakTime++;
+                    localStorage.setItem('breakTime', breakTime);
                     document.getElementById("breakTime").innerText = formatTime(breakTime);
                 }, 1000);
                 notify('Break started');
@@ -302,6 +306,8 @@
             updateGraph();
             studyTime = 0;
             breakTime = 0;
+            localStorage.setItem('studyTime', studyTime);
+            localStorage.setItem('breakTime', breakTime);
             document.getElementById("studyTime").innerText = "0";
             document.getElementById("breakTime").innerText = "0";
             notify('Study session saved');
@@ -457,6 +463,8 @@
             if (points >= nextLevelPoints) {
                 level++;
                 nextLevelPoints = levelRequirements[level - 1] || nextLevelPoints * 3; // Default to next level points
+                localStorage.setItem('level', level);
+                localStorage.setItem('nextLevelPoints', nextLevelPoints);
                 document.getElementById('level').innerText = level;
                 document.getElementById('nextLevelPoints').innerText = nextLevelPoints;
                 showPopup(`🎉 Congratulations! You've reached Level ${level}!`);
